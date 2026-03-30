@@ -1,15 +1,38 @@
+# Stage 1: Server build
+FROM node:22-alpine AS server
+
+RUN apk -U upgrade \
+  && apk add build-base python3 --no-cache
+
+WORKDIR /app
+
+COPY server .
+
+RUN npm install npm --global \
+  && npm install \
+  && npm run build \
+  && npm prune --production
+
+# Stage 2: Client build
+FROM node:22 AS client
+
+WORKDIR /app
+
+COPY client .
+
+RUN npm install npm --global \
+  && npm install --omit=dev \
+  && INDEX_FORMAT=ejs DISABLE_ESLINT_PLUGIN=true npm run build
+
 # Stage 3: Final image
 FROM node:22-alpine
 
 RUN apk -U upgrade \
-  && apk add bash python3 squid --no-cache
+  && apk add bash python3 squid --no-cache \
+  && npm install npm --global
 
 USER node
 WORKDIR /app
-
-# --- ADD THIS LINE HERE ---
-COPY --from=server --chown=node:node /app/start.sh ./start.sh
-# ---------------------------
 
 COPY --chown=node:node LICENSE.md .
 COPY --chown=node:node ["LICENSES/PLANKA Community License DE.md", "LICENSE_DE.md"]
@@ -18,9 +41,6 @@ COPY --from=server --chown=node:node /app/node_modules node_modules
 COPY --from=server --chown=node:node /app/dist .
 
 COPY --from=client --chown=node:node /app/dist public
-
-# Ensure requirements.txt is also present for the pip install below
-COPY --from=server --chown=node:node /app/requirements.txt .
 
 RUN python3 -m venv .venv \
   && .venv/bin/pip3 install --upgrade pip \
@@ -31,9 +51,6 @@ RUN python3 -m venv .venv \
 
 VOLUME /app/data
 EXPOSE 1337
-
-# Add permissions just to be safe
-RUN chmod +x ./start.sh
 
 HEALTHCHECK --interval=10s --timeout=2s --start-period=15s \
   CMD node ./healthcheck.js
