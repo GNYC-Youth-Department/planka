@@ -1,16 +1,17 @@
 services:
   planka:
     image: ghcr.io/gnyc-youth-department/planka-gnyc:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    ## Uncomment the following lines to build the image locally instead of pulling from the registry
+    #    build:
+    #      context: .
+    #      dockerfile: Dockerfile
     container_name: planka
     restart: on-failure
     volumes:
       - data:/app/data
       # - ./terms:/app/terms/custom
     ports:
-      - ${PORT:-3000}:1337
+      - ${EXTERNAL_PORT:-3000}:1337
     env_file:
       - .env
     depends_on:
