@@ -1,6 +1,6 @@
 services:
   planka:
-    image: planka-gnyc:latest
+    image: ghcr.io/gnyc-youth-department/planka-gnyc:latest
     build:
       context: .
       dockerfile: Dockerfile
